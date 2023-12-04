@@ -65,6 +65,9 @@ class CantStop:
         turn: Turn = self.create_turn()
 
         for player in self.play_order:
+            if self.is_over:
+                break
+
             print(f"\033[1;31mAu tour des grimpeurs de {player.name} de faire l'ascension !\033[m")
 
             keep_playing: bool = True
