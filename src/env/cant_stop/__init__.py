@@ -1,5 +1,6 @@
 from typing import Dict, Literal, List, Optional, Tuple, Union
 
+from env import Env
 from model.env.cant_stop.board import Board
 from model.env.cant_stop.bonze import Bonze
 from model.env.cant_stop.dice import Dice
@@ -9,49 +10,59 @@ from model.env.cant_stop.turn import Turn
 from model.env.cant_stop.way import Way
 
 
-class CantStop:
+class CantStop(Env):
     def __init__(self: 'CantStop', nb_ways: int, players: List[Player]):
         if nb_ways % 2 == 0:
             raise ValueError("Le nombre de voies doit être impair !")
 
+        self.nb_ways: int = nb_ways
         self.players: List[Player] = players
-        self.board: Board = Board(
-            median_way_id=(nb_ways + 1) // 2 + 1,  # Adjust the median since x starts from 2,
-            nb_ways=nb_ways,
-        )
-        self.board.ways: List[Way] = self.board.generate_ways()
-        self.turns: List[Turn] = []
-        self.nb_way_to_win: int = 3
-        self.won_by: Optional[Player] = None
-        self.is_over: bool = False
-
-    def create_turn(self: 'CantStop') -> Turn:
-        self.turns.append((turn := Turn(id=len(self.turns) + 1)))
-
-        return turn
+        self.reset(nb_ways, players)
 
     def determine_play_order(self: 'CantStop') -> List[Player]:
-        turn: Turn = self.create_turn()
+        self.turns.append((turn := Turn(id=len(self.turns) + 1)))
 
         # Lancez les dés pour chaque joueur
         for player in self.players:
             turn.roll_dice(player.id, [Dice(id=1), Dice(id=2)])
 
         # Calcul des scores pour chaque joueur
-        player_scores: Dict[int, int] = {player.id: sum(dice.value for dice in roll.dices) for roll in turn.dice_rolls for player in self.players if roll.by == player.id}
+        player_scores: Dict[int, int] = {
+            player.id: sum(dice.value for dice in roll.dices)
+            for roll in turn.dice_rolls
+            for player in self.players
+            if roll.by == player.id
+        }
 
         # Triez les joueurs en fonction de leurs scores
-        sorted_player_ids: List[id] = sorted(player_scores, key=player_scores.get, reverse=True)
+        sorted_player_ids: List[id] = sorted(
+            player_scores,
+            key=player_scores.get,
+            reverse=True,
+        )
 
         # Convertissez les IDs triés en objets Player
-        self.play_order: List[Player] = [next(player for player in self.players if player.id == player_id) for player_id in sorted_player_ids]
+        self.play_order: List[Player] = [
+            next(player for player in self.players if player.id == player_id)
+            for player_id in sorted_player_ids
+        ]
 
         turn.ended: bool = True
         self.turns.append(turn)
 
         return self.play_order
 
-    def is_finished(self: 'CantStop') -> Tuple[Optional[Player], bool]:
+    def reset(self: 'CantStop', nb_ways: int, players: List[Player]) -> None:
+        # Adjust the median since x starts from 2
+        self.board: Board = Board(median_way_id=(nb_ways + 1) // 2 + 1, nb_ways=nb_ways)
+        self.board.ways: List[Way] = self.board.generate_ways()
+        self.is_over: bool = False
+        self.nb_way_to_win: int = 3
+        self.players: List[Player] = players
+        self.turns: List[Turn] = []
+        self.won_by: Optional[Player] = None
+
+    def is_game_over(self: 'CantStop') -> Tuple[Optional[Player], bool]:
         for player in self.players:
             if self.nb_way_to_win == player.way_won_count:
                 self.won_by: Player = player
@@ -61,8 +72,8 @@ class CantStop:
 
         return self.won_by, self.is_over
 
-    def play_a_turn(self: 'CantStop') -> Turn:
-        turn: Turn = self.create_turn()
+    def step(self: 'CantStop') -> Turn:
+        self.turns.append((turn := Turn(id=len(self.turns) + 1)))
 
         for player in self.play_order:
             if self.is_over:
@@ -74,7 +85,10 @@ class CantStop:
             climbers_have_fallen: bool = False
 
             while keep_playing:
-                chosen_possibilities: Union[bool, List[int]] = player.chose_possibilities(turn, [way.id for way in self.board.ways if way.is_won])
+                chosen_possibilities: Union[bool, List[int]] = player.chose_possibilities(
+                    turn,
+                    [way.id for way in self.board.ways if way.is_won],
+                )
 
                 if chosen_possibilities == False:
                     climbers_have_fallen: bool = True
@@ -84,7 +98,10 @@ class CantStop:
                 for possibility in player.chose_ways(chosen_possibilities):
                     way: Way = self.board.ways[possibility - 2]  # on retire 2 comme on commence à 2 et que l'index commence à 0
                     player.set_playable_bonzes(way.id)
-                    chosen_bonze: Bonze = player.chose_bonze(way.id)
+                    chosen_bonze: Union[Bonze, bool] = player.get_bonze(way.id)
+
+                    if chosen_bonze is False:
+                        break
 
                     for i, box in enumerate(sorted(way.boxes, key=lambda box: box.id)):
                         if not box.is_occupied and player.id not in box.has_been_occupied_by:
@@ -123,32 +140,27 @@ class CantStop:
                                 way.boxes[i-1].is_occupied: bool = False
                                 way.boxes[i-1].has_been_occupied_by.append(player.id)
 
-                            print(f"""\
-                                Un autre grimpeur est déjà présent sur le mousqueton {box.id + 1}, \
-                                votre grimpeur {chosen_bonze.id} a sauté sur le mousqueton \
-                                {way.boxes[i+1].id + 1} de la voie {way.id}. \
+                            print(f"""
+                                Un autre grimpeur est déjà présent sur le mousqueton {box.id + 1},
+                                votre grimpeur {chosen_bonze.id} a sauté sur le mousqueton
+                                {way.boxes[i+1].id + 1} de la voie {way.id}.
                             """)
 
                             break
 
                 self.board.display()
+                keep_playing: bool = player.keep_playing()
 
-                print("Souhaitez-vous continuer l'ascension ? ('o' ou 'n')")
-                keep_playing_choice: Literal["o", "n"] = str(input()).strip()
-
-                while keep_playing_choice not in ["o", "n"]:
-                    print("On a dit 'o' ou 'n' pas :", keep_playing_choice)
-                    keep_playing_choice: Literal["o", "n"] = str(input()).strip()
-
-                keep_playing: bool = keep_playing_choice == "o"
-
-            for way in self.board.ways:
-                if sorted(way.boxes, key=lambda box: box.id)[-1].who_occupies == player:
-                    way.way_has_been_won(player)
+            # on vérifie à la fin du tour si le joueur à gagner une voie
+            ways_won: List[int] = self.board.player_has_won_ways(player)
 
             for bonze in player.bonzes:
-                bonze.is_placed: bool = False
-                bonze.where_is_placed = None
+                bonze.reset()
+
+            for _player in self.players:
+                for token in _player.tokens:
+                    token.reset(ways_won)
+                print(_player.name, len([token for token in _player.tokens if not token.is_placed]))
 
             token_way_box_ids: Dict[int, List[int]] = {way.id: [] for way in self.board.ways}
 
@@ -251,5 +263,7 @@ class CantStop:
         print("Voici l'ordre de passage des équipes pour les ascensions :", [player.name for player in self.determine_play_order()])
 
         while not self.is_over:
-            self.play_a_turn()
-            self.is_finished()
+            self.step()
+            self.is_game_over()
+
+        print(f"Félicitations {self.won_by.name} ! 🎉 Vous avez remporté la partie. 🥳")

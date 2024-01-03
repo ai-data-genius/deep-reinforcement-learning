@@ -10,3 +10,9 @@ class Bonze(BaseModel):
 
     def get_icon(self: 'Bonze') -> str:
         return "▲"
+
+    def reset(self: 'Bonze') -> None:
+        """On rend les grimpeurs au joueur à la fin de chaque tour."""
+
+        self.is_placed: bool = False
+        self.where_is_placed = None

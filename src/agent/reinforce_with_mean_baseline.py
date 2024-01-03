@@ -2,6 +2,7 @@ from torch import cat, from_numpy, log, multinomial, softmax, tensor
 from torch.nn import Module, Linear
 from torch.optim import Adam
 
+
 class PolicyNetwork(Module):
     def __init__(self, input_size, output_size):
         super(PolicyNetwork, self).__init__()
@@ -9,6 +10,7 @@ class PolicyNetwork(Module):
 
     def forward(self, x):
         return softmax(self.fc(x), dim=-1)
+
 
 class ReinforceWithBaseline:
     def __init__(self, env, learning_rate=0.01, gamma=0.99):

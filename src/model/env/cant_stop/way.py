@@ -22,10 +22,16 @@ class Way(BaseModel):
             box.way_won: bool = True
             box.won_by: Player = by
 
-            if box.is_occupied:
-                box.is_occupied: bool = False
-                box.who_occupies = None
+            if not box.is_occupied:
+                continue
 
-                if box.occupant_type is not None:
-                    box.occupant_type.is_placed: bool = False
-                    box.occupant_type.where_is_placed = None
+            box.has_been_occupied_by: list = []
+            box.is_occupied: bool = False
+            box.who_occupies = None
+
+            if box.occupant_type is None:
+                continue
+
+            box.occupant_type.is_placed: bool = False
+            box.occupant_type.where_is_placed = None
+            box.occupant_type = None

@@ -31,7 +31,7 @@ class Board(BaseModel):
     def generate_ways(self: 'Board') -> List[Way]:
         return [self.generate_way(_id) for _id in range(2, self.nb_ways+2)]
 
-    def display(self: 'Board'):
+    def display(self: 'Board') -> None:
         max_width: int = len(self.ways[-1].boxes)  # La longueur de la dernière rangée
 
         for way in self.ways:
@@ -54,3 +54,22 @@ class Board(BaseModel):
                     print(BoxEnum.EMPTY.value, end='  ')  # Espaces à l'intérieur des crochets
 
             print()  # Nouvelle ligne après chaque rangée
+
+    def player_has_won_ways(self: 'Board', player: Player) -> List[int]:
+        ways_won: List[int] = []
+
+        for way in self.ways:
+            if sorted(way.boxes, key=lambda box: box.id)[-1].who_occupies == player:
+                way.way_has_been_won(player)
+                ways_won.append(way.id)
+
+        return ways_won
+
+    def state(self: 'Board'):
+        state: list = []
+
+        for way in self.ways:
+            state.append(way.is_won)
+
+            for box in way.boxes:
+                state.append(box.is_occupied)

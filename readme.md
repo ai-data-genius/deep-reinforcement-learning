@@ -1,0 +1,3 @@
+# Data Genius - Deep Reinforcement Learning
+
+The Deep Reinforcement Learning project, led by Nicolas Vidal, focuses on the evaluation of different reinforcement learning techniques. We will be working on different environments such as Line World, Grid World, Tic Tac Toe, Cant Stop and Balloon Pop, applying learning algorithms such as Deep Q-Learning, REINFORCE, and MuZero. Objectives include understanding the strengths of each algorithm and their appropriate applications. Deliverables include a detailed code base, trained models and a report demonstrating methodology, results and interpretations. The project focuses on the theoretical understanding and practical application of reinforcement learning concepts.
