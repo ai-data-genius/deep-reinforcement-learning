@@ -2,8 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from model.env.cant_stop.box import Box
-from model.env.cant_stop.player import Player
+from entity.env.cant_stop.box import Box
+from entity.env.cant_stop.player import Player
 
 
 class Way(BaseModel):

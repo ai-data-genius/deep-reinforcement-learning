@@ -1,31 +1,38 @@
-from typing import Dict, List, Literal, Tuple, Union
+
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from pydantic import BaseModel
 
-from model.env.cant_stop.bonze import Bonze
-from model.env.cant_stop.color import Color
-from model.env.cant_stop.token import Token
-from model.env.cant_stop.turn import Turn
+from agent.cant_stop import CantStop as Agent
+from entity.env.cant_stop.bonze import Bonze
+from entity.env.cant_stop.color import Color
+from entity.env.cant_stop.token import Token
+from entity.env.cant_stop.turn import Turn
 
 
 class Player(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+
+    agent: Optional[Agent] = None
     color: Color
     bonzes: List[Bonze] = [Bonze(id=1), Bonze(id=2), Bonze(id=3)]
     id: int
     name: str
     playable_bonzes: Dict[int, List[Bonze]] = {}  # key => way_id
     tokens: List[Token] = [Token(id=1), Token(id=2), Token(id=3), Token(id=4), Token(id=5), Token(id=6), Token(id=7), Token(id=8), Token(id=9)]
+    type: Literal["human", "ai"] = "ai"
     way_won_count: int = 0
     ways_won_id: List[int] = []
 
-    def get_bonze(self: 'Player', way_id: int) -> Union[Bonze, bool]:
+    def get_bonze(self: "Player", way_id: int) -> Union[Bonze, bool]:
         if (playable_bonzes := [bonze for bonze in self.playable_bonzes[way_id]]) != []:
             return playable_bonzes[0]
 
         return False
 
     def chose_possibilities(
-        self: 'Player',
+        self: "Player",
         turn: Turn,
         won_ways: List[int],
     ) -> Union[bool, List[int]]:
@@ -52,7 +59,7 @@ class Player(BaseModel):
 
         return chosen_possibilities
 
-    def set_playable_bonzes(self: 'Player', way_id: int) -> None:
+    def set_playable_bonzes(self: "Player", way_id: int) -> None:
         self.playable_bonzes[way_id] = []
 
         for bonze in self.bonzes:
@@ -63,7 +70,7 @@ class Player(BaseModel):
         self.playable_bonzes[way_id] = [bonze for bonze in self.bonzes if not bonze.is_placed]
 
     def get_available_possibilities(
-        self: 'Player',
+        self: "Player",
         possibilities: List[Tuple[int]],
         won_ways: List[int],
     ) -> List[Tuple[int]]:
@@ -82,7 +89,7 @@ class Player(BaseModel):
         return [sublist for sublist in available_possibility if sublist]
 
     def get_ways_id_with_playable_bonzes(
-        self: 'Player',
+        self: "Player",
         chosen_possibilities: List[int],
     ) -> Tuple[int, List[int]]:
         nb_playable_bonzes_for_chosen_possibilities: int = 0
@@ -101,7 +108,7 @@ class Player(BaseModel):
         return nb_playable_bonzes_for_chosen_possibilities, ways_id_with_playable_bonzes
 
     def chose_ways(
-        self: 'Player',
+        self: "Player",
         chosen_possibilities: List[int]
     ):
         (
@@ -130,7 +137,7 @@ class Player(BaseModel):
 
         return [chosen_possibilities]
 
-    def keep_playing(self: 'Player') -> bool:
+    def keep_playing(self: "Player") -> bool:
         print("Souhaitez-vous continuer l'ascension ? ('o' ou 'n')")
         keep_playing_choice: Literal["o", "n"] = str(input()).strip()
 
@@ -139,3 +146,10 @@ class Player(BaseModel):
             keep_playing_choice: Literal["o", "n"] = str(input()).strip()
 
         return keep_playing_choice == "o"
+
+    def reset(self: "Player") -> None:
+        self.bonzes: List[Bonze] = [Bonze(id=1), Bonze(id=2), Bonze(id=3)]
+        self.playable_bonzes: Dict[int, List[Bonze]] = {}
+        self.tokens: List[Token] = [Token(id=1), Token(id=2), Token(id=3), Token(id=4), Token(id=5), Token(id=6), Token(id=7), Token(id=8), Token(id=9)]
+        self.way_won_count: int = 0
+        self.ways_won_id: List[int] = []
