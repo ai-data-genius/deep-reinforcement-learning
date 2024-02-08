@@ -3,7 +3,7 @@ from typing import List, Tuple
 
 from pydantic import BaseModel
 
-from entity.env.cant_stop.dice import Dice
+from src.entity.cant_stop.dice import Dice
 
 
 class DiceRoll(BaseModel):
@@ -17,7 +17,7 @@ class DiceRoll(BaseModel):
 
         return self
 
-    def get_possibilities(self: 'DiceRoll') -> List[Tuple[int]]:
+    def get_possibilities(self: 'DiceRoll') -> List[Tuple[int, int]]:
         n = len(self.dices)
         sum_pairs = []
 

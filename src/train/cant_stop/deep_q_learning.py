@@ -3,12 +3,13 @@ from time import time
 from torch.nn import MSELoss
 from torch.optim import Adam
 
-from agent.cant_stop.deep_q_learning import DeepQLearning as DQLAgent
-from agent.tool.replay_buffer import ReplayBuffer
-from entity.env.cant_stop.color import Color
-from entity.env.cant_stop.player import Player
-from env.cant_stop import CantStop
-from network.deep_q_learning import DeepQLearning as DQLNet
+from src.agent.cant_stop.deep_q_learning import DeepQLearning as DQLAgent
+from src.agent.cant_stop.random import Random as RandomAgent
+from src.agent.tool.replay_buffer import ReplayBuffer
+from src.entity.cant_stop.color import Color
+from src.entity.cant_stop.player import Player
+from src.env.cant_stop import CantStop
+from src.network.deep_q import DeepQNet
 
 
 nb_columns: int = 11
@@ -19,15 +20,15 @@ agent: DQLAgent = DQLAgent(
     decay_rate=.9,
     epsilon=1.0,
     gamma=.99,
-    model=DQLNet(
+    model=(model := DeepQNet(
         # le nombre de colonne * 7 caractéristiques chacune + 4 dès
         input_size=(nb_columns * 7) + 4,
         hidden_size=28,  # à tuner
         output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
-    ),
+    )),
     memory=ReplayBuffer(10_000),
     num_columns=nb_columns,
-    optimizer=Adam,
+    optimizer=Adam(model.parameters(), lr=.01),
 )
 
 game: CantStop = CantStop(
@@ -35,15 +36,15 @@ game: CantStop = CantStop(
     players=[
         Player(
             agent=agent,
-            color=(color := Color(name="red")),
+            color=Color(name="red"),
             id=1,
-            name="DQLAgent-1",
+            name="DQLAgent",
         ),
         Player(
-            agent=agent,
-            color=(color := Color(name="green")),
+            agent=RandomAgent(),
+            color=Color(name="green"),
             id=2,
-            name="DQLAgent-2",
+            name="Random",
         ),
     ],
 )
@@ -51,9 +52,8 @@ game: CantStop = CantStop(
 win_stat: dict = {player.id: 0 for player in game.players}
 start_time=time()
 
-for i in range(1000):
-    print(i)
-    game.play(True)
+for i in range(100):
+    game.play()
     win_stat[game.won_by.id] += 1
     game.reset()
 

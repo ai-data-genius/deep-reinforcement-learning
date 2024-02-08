@@ -10,7 +10,7 @@ class ReplayBuffer:
     def __len__(self: "ReplayBuffer") -> int:
         return len(self.buffer)
 
-    def push(
+    def add(
         self: "ReplayBuffer",
         state: List[int],
         action: int,
@@ -20,5 +20,8 @@ class ReplayBuffer:
     ) -> None:
         self.buffer.append((state, action, reward, next_state, done))
 
-    def sample(self: "ReplayBuffer", batch_size: int) -> list:
-        return rand_sample(self.buffer, batch_size)
+    def sample(self: "ReplayBuffer", batch_size: int) -> tuple:
+        experiences = rand_sample(self.buffer, batch_size)
+        states, actions, rewards, next_states, dones = zip(*experiences)
+
+        return list(states), list(actions), list(rewards), list(next_states), list(dones)

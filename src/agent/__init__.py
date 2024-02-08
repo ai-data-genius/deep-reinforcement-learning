@@ -1,6 +1,6 @@
 from typing import Callable, List
 
-from agent.tool.replay_buffer import ReplayBuffer
+from src.agent.tool.replay_buffer import ReplayBuffer
 
 
 class Agent:

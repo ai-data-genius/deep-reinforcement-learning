@@ -2,8 +2,8 @@ from typing import List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from entity.env.cant_stop.dice import Dice
-from entity.env.cant_stop.dice_roll import DiceRoll
+from src.entity.cant_stop.dice import Dice
+from src.entity.cant_stop.dice_roll import DiceRoll
 
 
 class Turn(BaseModel):
@@ -21,7 +21,7 @@ class Turn(BaseModel):
 
         while len(possibilities) == 0:
             dices_roll: 'DiceRoll' = self.roll_dices(player_id, [Dice(id=1), Dice(id=2), Dice(id=3), Dice(id=4)])
-            possibilities: List[Tuple[int]] = dices_roll.get_possibilities()
+            possibilities: List[Tuple[int, int]] = dices_roll.get_possibilities()
 
         if possibilities:
             dices_roll.allowed_to_play: bool = True

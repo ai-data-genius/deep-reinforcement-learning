@@ -2,9 +2,9 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel
 
-from entity.env.cant_stop.bonze import Bonze
-from entity.env.cant_stop.player import Player
-from entity.env.cant_stop.token import Token
+from src.entity.cant_stop.bonze import Bonze
+from src.entity.cant_stop.player import Player
+from src.entity.cant_stop.token import Token
 
 
 class Box(BaseModel):

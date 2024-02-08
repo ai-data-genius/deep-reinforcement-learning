@@ -2,10 +2,10 @@ from typing import List
 
 from pydantic import BaseModel
 
-from enumerator.env.cant_stop.box import Box as BoxEnum
-from entity.env.cant_stop.box import Box as BoxModel
-from entity.env.cant_stop.player import Player
-from entity.env.cant_stop.way import Way
+from src.enumerator.cant_stop.box import Box as BoxEnum
+from src.entity.cant_stop.box import Box as BoxModel
+from src.entity.cant_stop.player import Player
+from src.entity.cant_stop.way import Way
 
 
 class Board(BaseModel):
