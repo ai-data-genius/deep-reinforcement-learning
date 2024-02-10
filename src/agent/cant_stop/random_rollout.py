@@ -22,7 +22,7 @@ class RandomRollout(Agent):
         # Choix d'une action aléatoire pour compatibilité avec l'interface
         return choice(possible_actions), True
 
-    def random_rollout(self: "RandomRollout", env: Env, player: Player) -> float:
+    def rollout(self: "RandomRollout", env: Env, player: Player) -> float:
         """Effectue des rollouts aléatoires pour évaluer un état."""
 
         total_reward = 0

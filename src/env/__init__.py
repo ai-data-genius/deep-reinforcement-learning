@@ -1,6 +1,8 @@
-class Env:
-    def reset(self: "Env"):
-        raise NotImplementedError
+from typing import Any
 
-    def step(self: "Env", action):
-        raise NotImplementedError
+class Env:
+    def reset(self: "Env") -> None:
+        raise NotImplementedError()
+
+    def step(self: "Env", action: Any, *args, **kwargs) -> int:
+        raise NotImplementedError()

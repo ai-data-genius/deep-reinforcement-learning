@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Any, Callable, List, Tuple
 
 from src.agent.tool.replay_buffer import ReplayBuffer
 
@@ -10,8 +10,10 @@ class Agent:
     memory: ReplayBuffer
     optimizer: object
 
-    def select_action(self: "Agent", state: List[int]) -> int:
-        raise NotImplementedError
-
-    def train(self: "Agent") -> int:
-        raise NotImplementedError
+    def select_action(
+        self: "Agent",
+        state: List[int],
+        possible_actions: List[Tuple[int, int]],
+        num_columns: int,
+    ) -> Any:
+        raise NotImplementedError()

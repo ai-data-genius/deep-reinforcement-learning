@@ -1,43 +1,39 @@
 from time import time
 
-from torch.nn import MSELoss
 from torch.optim import Adam
 
-from src.agent.cant_stop.deep_q_learning import DeepQLearning as DQLAgent
+from src.agent.cant_stop.reinforce_with_baseline_learned_by_a_critic import ReinforceWithBaselineLearnedByACritic as Agent
 from src.agent.cant_stop.random import Random as RandomAgent
-from src.agent.tool.replay_buffer import ReplayBuffer
 from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
-from src.network.deep_q import DeepQNet
+from src.network.reinforce_with_baseline_learned_by_a_critic import ActorCritic as Net
 
-
-agent: DQLAgent = DQLAgent(
-    batch_size=10,
-    criterion=MSELoss(),
-    decay_rate=.9,
-    epsilon=1.0,
-    gamma=.99,
-    model=(model := DeepQNet(
-        # le nombre de colonne * 7 caractéristiques chacune + 4 dès
-        input_size=(nb_columns * 7) + 4,
-        hidden_size=28,  # à tuner
-        output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
-    )),
-    memory=ReplayBuffer(10_000),
-    num_columns=nb_columns,
-    optimizer=Adam(model.parameters(), lr=.01),
-)
 
 game: CantStop = CantStop(
     nb_ways=nb_columns,
     players=[
         Player(
-            agent=agent,
+            agent=(
+                agent := Agent(
+                    batch_size=10,
+                    decay_rate=.9,
+                    epsilon=1.0,
+                    gamma=.99,
+                    is_policy_gradient=True,
+                    model=(model := Net(
+                        # le nombre de colonne * 7 caractéristiques chacune + 4 dès
+                        input_size=(nb_columns * 7) + 4,
+                        output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
+                    )),
+                    num_columns=nb_columns,
+                    optimizer=Adam(model.parameters(), lr=.01),
+                )
+            ),
             color=Color(name="red"),
             id=1,
-            name="DQLAgent",
+            name="Reinforce",
         ),
         Player(
             agent=RandomAgent(),
@@ -60,7 +56,7 @@ def train() -> None:
 
     agent.model.save(
         folder_paths["cant_stop"],
-        "deep_q_learning.pth",
+        "reinforce_with_baseline_learned_by_a_critic.pth",
     )
     end_time=time()
 
