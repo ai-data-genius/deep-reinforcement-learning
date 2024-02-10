@@ -1,21 +1,42 @@
-from env.cant_stop import CantStop
-from model.env.cant_stop.color import Color
-from model.env.cant_stop.player import Player
+from os.path import abspath
+from subprocess import CalledProcessError, PIPE, run
+
+from click import command, group, option
 
 
-game = CantStop(
-    11,
-    [
-        Player(
-            color=(color := Color(name="red")),
-            id=1,
-            name="Hugo",
-        ),
-        Player(
-            color=(color := Color(name="green")),
-            id=2,
-            name="David",
-        ),
-    ],
-)
-game.play()
+@group()
+def cli():
+    pass
+
+
+@command()
+@option("--game", default="cant_stop", help="Env name you would like to train.")
+@option("--agent", default="human", help="Agent name you would like to train.")
+def train(game: str, agent: str):
+    try:
+        print(
+            run(
+                [
+                    "python",
+                    f"{abspath('.')}/src/train/{game}/{agent}.py",
+                ],
+                check=True,
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            .stdout
+            .decode('utf-8')
+        )
+    except CalledProcessError as e:
+        print("Erreur lors de l'exécution du script :")
+        print(e.stderr.decode())
+    except Exception as e:
+        print("Autre erreur :")
+        print(e.stderr.decode())
+
+
+cli.add_command(train)
+
+
+if __name__ == '__main__':
+    cli()

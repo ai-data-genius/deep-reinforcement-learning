@@ -2,10 +2,10 @@ from typing import List
 
 from pydantic import BaseModel
 
-from enumerator.env.cant_stop.box import Box as BoxEnum
-from model.env.cant_stop.box import Box as BoxModel
-from model.env.cant_stop.player import Player
-from model.env.cant_stop.way import Way
+from src.enumerator.cant_stop.box import Box as BoxEnum
+from src.entity.cant_stop.box import Box as BoxModel
+from src.entity.cant_stop.player import Player
+from src.entity.cant_stop.way import Way
 
 
 class Board(BaseModel):
@@ -32,28 +32,29 @@ class Board(BaseModel):
         return [self.generate_way(_id) for _id in range(2, self.nb_ways+2)]
 
     def display(self: 'Board') -> None:
-        max_width: int = len(self.ways[-1].boxes)  # La longueur de la dernière rangée
+        max_width: int = len(self.ways[-1].boxes)  # La longueur de la dernière rangée.
 
         for way in self.ways:
             num_boxes = len(way.boxes)
-            spaces = ' ' * (max_width - num_boxes) * 3  # 3 espaces par différence de boîte
+            spaces = ' ' * (max_width - num_boxes) * 3  # 3 espaces par différence de boîte.
 
-            print(f"{way.id:<3}{spaces}", end='')  # Imprimer l'ID du "Way" avec espaces
+            print(f"{way.id:<3}{spaces}", end='')  # Imprimer l'ID du "Way" avec espaces.
 
             for box in way.boxes:
                 if box.is_occupied:
-                    # Reset à la couleur par défaut après
+                    # Reset à la couleur par défaut après.
                     print(
                         f"{box.who_occupies.color.get_ansi_color_code()}[ {box.occupant_type.get_icon()} ]\033[0m",
                         end='  ',
                     )
                 elif box.way_won:
-                    # Reset à la couleur par défaut après
+                    # Reset à la couleur par défaut après.
                     print(f"{box.won_by.color.get_ansi_color_code()}[ ▀ ]\033[0m", end='  ')
                 else:
-                    print(BoxEnum.EMPTY.value, end='  ')  # Espaces à l'intérieur des crochets
+                    print(BoxEnum.EMPTY.value, end='  ')  # Espaces à l'intérieur des crochets.
 
-            print()  # Nouvelle ligne après chaque rangée
+            print()  # Nouvelle ligne après chaque rangée.
+        print() # On aére.
 
     def player_has_won_ways(self: 'Board', player: Player) -> List[int]:
         ways_won: List[int] = []

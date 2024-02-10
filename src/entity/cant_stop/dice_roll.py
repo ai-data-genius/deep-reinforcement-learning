@@ -3,14 +3,13 @@ from typing import List, Tuple
 
 from pydantic import BaseModel
 
-from model.env.cant_stop.dice import Dice
+from src.entity.cant_stop.dice import Dice
 
 
 class DiceRoll(BaseModel):
     allowed_to_play: bool = False  # Si le lancé de dés permet de jouer au moins 1 voie
     by: int  # player_id
     dices: List[Dice]
-    id: int
 
     def roll_dices(self: 'DiceRoll') -> 'DiceRoll':
         for dice in self.dices:
@@ -18,7 +17,7 @@ class DiceRoll(BaseModel):
 
         return self
 
-    def get_possibilities(self: 'DiceRoll') -> List[Tuple[int]]:
+    def get_possibilities(self: 'DiceRoll') -> List[Tuple[int, int]]:
         n = len(self.dices)
         sum_pairs = []
 

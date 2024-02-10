@@ -1,7 +1,4 @@
 class Env:
-    def render(self):
-        raise NotImplementedError
-
     def reset(self: "Env"):
         raise NotImplementedError
 
