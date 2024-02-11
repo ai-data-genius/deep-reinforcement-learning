@@ -380,12 +380,15 @@ class CantStop(Env):
             self.is_over,
         )
 
-    def play(self: "CantStop", render: bool = False) -> None:
+    def play(
+        self: "CantStop",
+        render: bool = False,
+    ) -> None:
         self.determine_play_order() 
 
         while not self.is_over:
             for player in self.players:
-                if self.is_over:
+                if self.is_over and not player.agent.is_policy_gradient:
                     self._update(
                         player,
                         self.get_state(),
@@ -422,6 +425,9 @@ class CantStop(Env):
 
                     reward += self.step(player, action)
 
+                    if player.agent.is_policy_gradient:
+                        player.agent.rewards.append(reward)
+
                     if render:
                         self.board.display()
 
@@ -431,7 +437,13 @@ class CantStop(Env):
                     self.board.display()
 
                 self.is_game_over()
-                self._update(player, current_state, action, player.reward)
+
+                if not player.agent.is_policy_gradient:
+                    self._update(player, current_state, action, player.reward)
+
+        for player in self.players:
+            if player.agent.is_policy_gradient:
+                player.agent.update()
 
         if render:
             print(f"""Félicitations {self.won_by.name} ! 🎉 Vous avez remporté la partie. 🥳""")

@@ -1,7 +1,11 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
+
+from torch import load
+from torch.optim import Optimizer
 
 from src.agent import Agent
 from src.agent.tool.replay_buffer import ReplayBuffer
+from src.entity.cant_stop.bonze import Bonze
 from src.network import Network
 
 
@@ -13,12 +17,13 @@ class CantStop(Agent):
         decay_rate: Optional[float] = None,
         epsilon: Optional[float] = None,
         gamma: Optional[float] = None,
+        is_policy_gradient: bool = False,
         model: Optional[Network] = None,
         memory: Optional[ReplayBuffer] = None,
         memory_size: int = 20_0000,
         num_columns: Optional[int] = None,
-        optimizer: Optional[object] = None,
-    ):
+        optimizer: Optional[Optimizer] = None,
+    ) -> None:
         self.batch_size: Optional[int] = batch_size
         self.criterion: Optional[Callable] = criterion
         self.decay_rate: Optional[float] = decay_rate
@@ -29,15 +34,17 @@ class CantStop(Agent):
         self.memory: Optional[ReplayBuffer] = memory
         self.memory_size: int = memory_size
         self.num_columns: Optional[int] = num_columns
-        self.optimizer: Optional[object] = optimizer
-        self.playable_bonzes = None
+        self.optimizer: Optional[Optimizer] = optimizer
+        self.playable_bonzes: Dict[int, List[Bonze]] = {}
+        self.is_policy_gradient: bool = is_policy_gradient
 
     def _action_to_index(
         self: "CantStop",
         action: Tuple[int, int],
         num_columns: int,
     ) -> int:
-        # -2 pour l'ajustement pour le décalage de numérotation (ex: 2 à 12 au lieu de 1 à 11)
+        # -2 pour l'ajustement pour le décalage de
+        # numérotation (ex: 2 à 12 au lieu de 1 à 11)
         return (
             (action[0] - 2)
             * num_columns
@@ -48,16 +55,11 @@ class CantStop(Agent):
             )
         )
 
-    def update_epsilon(self: "CantStop") -> None:
+    def _update_epsilon(self: "CantStop") -> None:
         self.epsilon = max(self.epsilon * self.decay_rate, 0.01)
 
-    def select_action(
-        self: "CantStop",
-        state: List[int],
-        possible_actions: List[Tuple[int, int]],
-        num_columns: int,
-    ) -> Union[Tuple[int, int], bool]:
-        raise NotImplementedError
+    def load_model(self: "CantStop", path: str) -> None:
+        self.model.load_state_dict(load(path))
 
     def remember(
         self: "CantStop",

@@ -64,7 +64,7 @@ class DeepQLearning(CantStop):
         possible_actions: List[Tuple[int, int]],
         num_columns: int,
     ) -> Union[Tuple[int, int], bool]:
-        self.update_epsilon()
+        self._update_epsilon()
 
         if random() < self.epsilon:
             return choice(possible_actions), random() >= self.keep_playing_threshold

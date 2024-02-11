@@ -5,13 +5,13 @@ from torch.optim import Adam
 from src.agent.cant_stop.double_deep_q_learning_with_prioritized_experience_replay import DoubleDeepQLearningWithPrioritizedReplay as DDQLAgent
 from src.agent.cant_stop.random import Random as RandomAgent
 from src.agent.tool.prioritized_replay_buffer import PrioritizedReplayBuffer
+from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
 from src.network.deep_q import DeepQNet
 
 
-nb_columns = 11
 replay_buffer_size = 10000
 batch_size = 64
 target_update_frequency = 100
@@ -64,15 +64,25 @@ game = CantStop(
     ],
 )
 
-win_stat = {player.id: 0 for player in game.players}
-start_time = time()
 
-for episode in range(100):
-    game.play()
-    win_stat[game.won_by.id] += 1
-    game.reset()
+def train() -> None:
+    win_stat: dict = {player.id: 0 for player in game.players}
+    start_time=time()
 
-end_time = time()
+    for _ in range(nb_episodes):
+        game.play()
+        win_stat[game.won_by.id] += 1
+        game.reset()
 
-print(f"Le temps d'exécution de la boucle est de {end_time - start_time} secondes.")
-print(f"Stats: {win_stat}")
+    agent.model.save(
+        folder_paths["cant_stop"],
+        "double_deep_q_learning_with_prioritized_experience_replay.pth",
+    )
+    end_time=time()
+
+    print(f"Le temps d'exécution de la boucle est de {end_time - start_time} secondes.")
+    print(f"Stats: {win_stat}")
+
+
+if __name__ == "__main__":
+    train()

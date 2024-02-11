@@ -1,4 +1,4 @@
-from numpy import array, float32, ndarray, zeros
+from numpy import float32, ndarray, zeros
 from numpy.random import choice
 from typing import Any, Iterable, Tuple, Union
 
