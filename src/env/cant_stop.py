@@ -20,7 +20,7 @@ class CantStop(Env):
         self.reset()
 
     def determine_play_order(self: "CantStop") -> List[Player]:
-        # Lancez les dés pour chaque joueur
+        # Lance les dés pour chaque joueur
         dice_rolls = [
             Turn(id=0).roll_dices(player.id, [Dice(id=1), Dice(id=2)])
             for player in self.players
@@ -34,14 +34,14 @@ class CantStop(Env):
             if roll.by == player.id
         }
 
-        # Triez les joueurs en fonction de leurs scores
+        # Trie les joueurs en fonction de leurs scores
         sorted_player_ids: List[id] = sorted(
             player_scores,
             key=player_scores.get,
             reverse=True,
         )
 
-        # Convertissez les IDs triés en objets Player
+        # Convertis les IDs triés en objets Player
         self.play_order: List[Player] = [
             next(player for player in self.players if player.id == player_id)
             for player_id in sorted_player_ids
@@ -366,7 +366,7 @@ class CantStop(Env):
             current_state,
             action,
             reward,
-            self.get_state(),
+            self.get_state(),  # <=> next_state
             self.is_over,
         )
 
@@ -374,7 +374,7 @@ class CantStop(Env):
             current_state,
             action,
             reward,
-            self.get_state(),
+            self.get_state(),  # <=> next_state
             self.is_over,
         )
 
@@ -386,14 +386,7 @@ class CantStop(Env):
 
         while not self.is_over:
             for player in self.players:
-                if self.is_over and not player.agent.is_policy_gradient:
-                    self._update(
-                        player,
-                        self.get_state(),
-                        [1, 1],
-                        player.reward,
-                    )
-
+                if self.is_over:
                     break
 
                 keep_playing: bool = True
@@ -408,7 +401,7 @@ class CantStop(Env):
                         climbers_have_fallen: bool = True
                         action = [1, 1]
                         keep_playing = False
-                        reward = player.reward  # s'il tombe on donne pas de nouveau reward
+                        reward = player.reward  # S'il tombe on donne pas de nouveau reward.
 
                         if render:
                             print("Miséricorde ! Les grimpeurs viennent de tomber... Retour aux camps obligé !")
@@ -445,6 +438,13 @@ class CantStop(Env):
         for player in self.players:
             if player.agent.is_policy_gradient:
                 player.agent.update()
+            else:
+                self._update(
+                    player,
+                    self.get_state(),
+                    [1, 1],
+                    player.reward,
+                )
 
         if render:
-            print(f"""Félicitations {self.won_by.name} ! 🎉 Vous avez remporté la partie. 🥳""")
+            print(f"Félicitations {self.won_by.name} ! 🎉 Vous avez remporté la partie. 🥳")
