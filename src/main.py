@@ -22,6 +22,7 @@ def train(game: str, agent: str):
         "reinforce_mb": "reinforce_with_mean_baseline",
         "reinforce_blc": "reinforce_with_baseline_learned_by_a_critic",
         "mcts": "monte_carlo_tree_search",
+        "ppo": "ppo",
     }[agent]
 
     try:
