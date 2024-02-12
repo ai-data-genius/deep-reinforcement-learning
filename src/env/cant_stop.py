@@ -104,7 +104,7 @@ class CantStop(Env):
         self: "CantStop",
         player: Player,
         action: Tuple[int, int],
-    ) -> int:
+    ) -> float:
         """Return reward."""
 
         reward = 0.0
@@ -159,8 +159,6 @@ class CantStop(Env):
 
                     reward += 1.5
                     break
-
-                reward += -1.0
 
         return reward
 
@@ -393,7 +391,7 @@ class CantStop(Env):
                         player,
                         self.get_state(),
                         [1, 1],
-                        player.reward if self.won_by == player else player.reward - 2,
+                        player.reward,
                     )
 
                     break
@@ -410,18 +408,21 @@ class CantStop(Env):
                         climbers_have_fallen: bool = True
                         action = [1, 1]
                         keep_playing = False
-                        reward = player.reward - 2.0  # s'il tombe on retire 2
+                        reward = player.reward  # s'il tombe on donne pas de nouveau reward
 
                         if render:
                             print("Miséricorde ! Les grimpeurs viennent de tomber... Retour aux camps obligé !")
 
                         continue
 
-                    action, keep_playing = player.agent.select_action(
-                        current_state,
-                        possible_actions,
-                        self.nb_ways,
-                    )
+                    if not player.agent.is_off_policy:
+                        action, keep_playing = player.agent.select_action(
+                            current_state,
+                            possible_actions,
+                            self.nb_ways,
+                        )
+                    else:
+                        action, keep_playing = player.agent.select_action(self, player)
 
                     reward += self.step(player, action)
 

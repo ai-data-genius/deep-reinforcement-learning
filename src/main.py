@@ -13,6 +13,17 @@ def cli():
 @option("--game", default="cant_stop", help="Env name you would like to train.")
 @option("--agent", default="human", help="Agent name you would like to train.")
 def train(game: str, agent: str):
+    agent = {
+        "dql": "deep_q_learning",
+        "ddql": "double_deep_q_learning",
+        "ddql_exp": "double_deep_q_learning_with_experience_replay",
+        "ddql_prio_exp": "double_deep_q_learning_with_prioritized_experience_replay",
+        "reinforce": "reinforce",
+        "reinforce_mb": "reinforce_with_mean_baseline",
+        "reinforce_blc": "reinforce_with_baseline_learned_by_a_critic",
+        "mcts": "monte_carlo_tree_search",
+    }[agent]
+
     try:
         print(
             run(

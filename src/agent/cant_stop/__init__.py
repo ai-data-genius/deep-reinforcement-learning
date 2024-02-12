@@ -18,6 +18,7 @@ class CantStop(Agent):
         epsilon: Optional[float] = None,
         gamma: Optional[float] = None,
         is_policy_gradient: bool = False,
+        is_off_policy: bool = False,
         model: Optional[Network] = None,
         memory: Optional[ReplayBuffer] = None,
         memory_size: int = 20_0000,
@@ -31,12 +32,13 @@ class CantStop(Agent):
         self.gamma: Optional[float] = gamma
         self.keep_playing_threshold: float = .5
         self.model: Optional[Network] = model
+        self.is_policy_gradient: bool = is_policy_gradient
+        self.is_off_policy: bool = is_off_policy
         self.memory: Optional[ReplayBuffer] = memory
         self.memory_size: int = memory_size
         self.num_columns: Optional[int] = num_columns
         self.optimizer: Optional[Optimizer] = optimizer
         self.playable_bonzes: Dict[int, List[Bonze]] = {}
-        self.is_policy_gradient: bool = is_policy_gradient
 
     def _action_to_index(
         self: "CantStop",
