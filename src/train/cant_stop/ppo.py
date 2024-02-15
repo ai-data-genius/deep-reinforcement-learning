@@ -1,3 +1,6 @@
+from datetime import datetime
+from json import dumps
+from os.path import join
 from time import time
 
 from torch.optim import Adam
@@ -9,8 +12,11 @@ from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
+from src.metric import Metric
 from src.network.ppo import PPO as Net
 
+
+trained_agent: str = "ppo"
 
 game: CantStop = CantStop(
     nb_ways=nb_columns,
@@ -18,7 +24,7 @@ game: CantStop = CantStop(
         Player(
             agent=(
                 agent := Agent(
-                    batch_size=10,
+                    batch_size=64,
                     decay_rate=.9,
                     eps_clip=.2,
                     gamma=.99,
@@ -47,21 +53,23 @@ game: CantStop = CantStop(
     ],
 )
 
-
 def train() -> None:
-    win_stat: dict = {player.id: 0 for player in game.players}
-    start_time=time()
+    start_time: float = time()
 
     for _ in range(nb_episodes):
         game.play()
-        win_stat[game.won_by.id] += 1
         game.reset()
 
-    agent.model.save(folder_paths["cant_stop"], "ppo.pth")
-    end_time=time()
+    agent.model.save(folder_paths["models"]["cant_stop"], f"{trained_agent}.pth")
 
-    print(f"Le temps d'exécution de la boucle est de {end_time - start_time} secondes.")
-    print(f"Stats: {win_stat}")
+    with open(
+        join(
+            folder_paths["metrics"]["cant_stop"],
+            f"{trained_agent}--{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}--ep_{nb_episodes}.json",
+        ),
+        "a",
+    ) as file:
+        file.write(dumps(Metric(start_time, time(), nb_episodes, game.stats).get()))
 
 
 if __name__ == "__main__":

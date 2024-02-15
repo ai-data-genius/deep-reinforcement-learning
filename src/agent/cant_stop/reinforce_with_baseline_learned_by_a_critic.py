@@ -33,14 +33,14 @@ class ReinforceWithBaselineLearnedByACritic(CantStop):
         self._update_epsilon()
         state_tensor = tensor(state, dtype=float32).unsqueeze(0)
         # Obtient les probabilités d'actions et la valeur d'état
-        action_probs, state_value = self.model(state_tensor)
+        action_probs, state_value, keep_playing_prob = self.model(state_tensor)
         action_probs = action_probs.squeeze()
 
-        # Déterminer si continue de jouer
-        keep_playing = random() < self.keep_playing_threshold
-
         if random() < self.epsilon:
-            return  possible_actions[choice([i for i in range(len(possible_actions))])], keep_playing 
+            return (
+                possible_actions[choice([i for i in range(len(possible_actions))])],
+                random() >= self.keep_playing_threshold,
+            )
 
         indices = [self._action_to_index(action, num_columns) for action in possible_actions]
         valid_probs = action_probs[indices]
@@ -51,7 +51,7 @@ class ReinforceWithBaselineLearnedByACritic(CantStop):
         # Enregistrer le log_prob et la valeur d'état pour l'action sélectionnée
         self.saved_actions_and_values.append((m.log_prob(action_index), state_value.squeeze()))
 
-        return possible_actions[action_index.item()], keep_playing
+        return possible_actions[action_index.item()], keep_playing_prob.item() >= self.keep_playing_threshold
 
     def update(self: "ReinforceWithBaselineLearnedByACritic") -> None:
         R = 0
@@ -80,6 +80,8 @@ class ReinforceWithBaselineLearnedByACritic(CantStop):
         total_loss = stack(policy_losses).sum() + stack(value_losses).sum()
         total_loss.backward()
         self.optimizer.step()
+
+        self.cumulative_losses.append(total_loss.detach().numpy().item())
 
         self.rewards = []
         self.saved_actions_and_values = []

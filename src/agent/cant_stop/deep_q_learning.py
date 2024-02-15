@@ -58,6 +58,8 @@ class DeepQLearning(CantStop):
         loss.backward()
         self.optimizer.step()
 
+        self.cumulative_losses.append(loss.detach().numpy().item())
+
     def select_action(
         self: "DeepQLearning",
         state: List[int],

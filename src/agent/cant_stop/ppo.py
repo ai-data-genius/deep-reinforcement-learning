@@ -67,7 +67,7 @@ class PPO(Agent):
 
         return (
             chosen_action,
-            keep_playing_logits.sigmoid().item() > self.keep_playing_threshold,
+            keep_playing_logits.item() > self.keep_playing_threshold,
         )
 
     def update(
@@ -136,3 +136,5 @@ class PPO(Agent):
             self.optimizer.zero_grad()
             total_loss.backward()
             self.optimizer.step()
+
+            self.cumulative_losses.append(value_loss.detach().numpy().item())

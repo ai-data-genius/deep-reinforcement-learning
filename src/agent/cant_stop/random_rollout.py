@@ -1,4 +1,5 @@
-from random import choice
+from copy import deepcopy
+from random import choice, random
 from typing import List, Tuple, Union
 
 from src.agent.cant_stop import CantStop as Agent
@@ -20,10 +21,12 @@ class RandomRollout(Agent):
         num_columns: int,
     ) -> Union[Tuple[int, int], bool]:
         # Choix d'une action aléatoire pour compatibilité avec l'interface
-        return choice(possible_actions), True
+        return choice(possible_actions), random() >= self.keep_playing_threshold
 
     def rollout(self: "RandomRollout", env: Env, player: Player) -> float:
         """Effectue des rollouts aléatoires pour évaluer un état."""
+
+        env: Env = deepcopy(env)
 
         total_reward = 0
         for _ in range(self.num_rollouts):

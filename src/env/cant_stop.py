@@ -1,3 +1,5 @@
+from time import time
+
 from typing import Dict, List, Optional, Tuple, Union
 
 from src.env import Env
@@ -17,6 +19,14 @@ class CantStop(Env):
 
         self.nb_ways: int = nb_ways
         self.players: List[Player] = players
+        self.stats: dict = {
+            "losses": {player.name: [] for player in self.players},
+            "nb_step": 0,
+            "step_times": [],
+            "reward": {player.name: [] for player in self.players},
+            "wins": {player.name: 0 for player in self.players},
+        }
+
         self.reset()
 
     def determine_play_order(self: "CantStop") -> List[Player]:
@@ -82,9 +92,9 @@ class CantStop(Env):
     def is_game_over(self: "CantStop") -> Tuple[Optional[Player], bool]:
         for player in self.players:
             if self.nb_way_to_win <= player.way_won_count:
-                player.reward += 2.0
                 self.won_by: Player = player
                 self.is_over: bool = True
+                self.stats["wins"][player.name] += 1
 
                 return self.won_by, self.is_over
 
@@ -162,7 +172,7 @@ class CantStop(Env):
 
         return reward
 
-    def end_of_step_process(
+    def end_of_turn_process(
         self: "CantStop",
         player: Player,
         climbers_have_fallen: bool,
@@ -393,7 +403,7 @@ class CantStop(Env):
                 climbers_have_fallen: bool = False
 
                 while keep_playing:
-                    reward = player.reward
+                    reward: float = 0.0
                     possible_actions: List[Tuple[int, int]] = self.get_possible_actions(player)
                     current_state: List[int] = self.get_state()
 
@@ -401,12 +411,13 @@ class CantStop(Env):
                         climbers_have_fallen: bool = True
                         action = [1, 1]
                         keep_playing = False
-                        reward = player.reward  # S'il tombe on donne pas de nouveau reward.
 
                         if render:
                             print("Miséricorde ! Les grimpeurs viennent de tomber... Retour aux camps obligé !")
 
                         continue
+
+                    start_time: float = time()
 
                     if not player.agent.is_off_policy:
                         action, keep_playing = player.agent.select_action(
@@ -415,28 +426,38 @@ class CantStop(Env):
                             self.nb_ways,
                         )
                     else:
-                        action, keep_playing = player.agent.select_action(self, player)
+                        action, keep_playing = player.agent.select_action(self, player, possible_actions)
 
                     reward += self.step(player, action)
+                    player.reward += reward
 
-                    if player.agent.is_policy_gradient:
+                    if player.agent.is_mc_policy:
                         player.agent.rewards.append(reward)
+
+                    self.stats["step_times"].append(time() - start_time)
+                    self.stats["nb_step"] += 1
 
                     if render:
                         self.board.display()
 
-                self.end_of_step_process(player, climbers_have_fallen)
+                self.end_of_turn_process(player, climbers_have_fallen)
 
                 if render:
                     self.board.display()
 
                 self.is_game_over()
 
-                if not player.agent.is_policy_gradient:
-                    self._update(player, current_state, action, player.reward)
+                if not player.agent.update_each_episode:
+                    self._update(player, current_state, action, reward)
 
         for player in self.players:
-            if player.agent.is_policy_gradient:
+            player.reward = player.reward + 5 if self.won_by == player else -1.0
+            self.stats["reward"][player.name].append(player.reward)
+
+            if not player.agent.is_off_policy:
+                self.stats["losses"][player.name] = player.agent.cumulative_losses
+
+            if player.agent.update_each_episode:
                 player.agent.update()
             else:
                 self._update(

@@ -57,6 +57,8 @@ class DoubleDeepQLearning(CantStop):
         loss.backward()
         self.optimizer.step()
 
+        self.cumulative_losses.append(loss.detach().numpy().item())
+
         # Mise à jour périodique du réseau cible
         self.update_count += 1
         if self.update_count % self.target_update_frequency == 0:

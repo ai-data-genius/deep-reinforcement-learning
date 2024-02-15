@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import log, sqrt
 from random import choice, random
 from typing import List, Tuple, Union
@@ -12,6 +13,7 @@ class MCTSNode:
         self: "MCTSNode",
         env: Env,
         player: Player,
+        possible_actions: List[Tuple[int, int]],
         action=None,
         parent=None,
     ) -> None:
@@ -20,26 +22,12 @@ class MCTSNode:
         self.env: Env = env
         self.parent: MCTSNode = parent
         self.player: Player = player
-        self.state: List[int] = env.get_state().copy()
-        self.untried_actions: List[Tuple[int, int]] = env.get_possible_actions(player)
+        self.untried_actions: List[Tuple[int, int]] = possible_actions
         self.visits: int = 0
-        self.reward: float = 0.0
-
-    def expand_node(self):
-        """Étend un nœud en générant des enfants pour chaque action possible."""
-
-        possible_actions = self.env.get_possible_actions(self.player)
-
-        for action in possible_actions:
-            self.env.step(self.player, action)
-            self.children.append(MCTSNode(self.env, self.player, action, self))
+        self.wins: float = 0.0
 
     def uct_select_child(self: "MCTSNode") -> "MCTSNode":
         """Sélectionne un enfant du nœud en utilisant la formule UCT."""
-
-        if not self.children:
-            # Si le nœud n'a pas d'enfants, il doit d'abord être étendu
-            self.expand_node()
 
         # Constante d'exploration
         C = 1.414
@@ -53,7 +41,7 @@ class MCTSNode:
             if self.visits == 0 or child.visits == 0:
                 score = float('inf')  # Encourage l'exploration de nouveaux nœuds
             else:
-                score = child.reward / child.visits + C * sqrt(log(self.visits) / child.visits)
+                score = child.wins / child.visits + C * sqrt(log(self.visits) / child.visits)
 
             if score > best_score:
                 best_score = score
@@ -63,14 +51,15 @@ class MCTSNode:
 
     def add_child(
         self: "MCTSNode",
-        action: Tuple[int, int],
         env: Env,
         player: Player,
     ) -> "MCTSNode":
         """Ajoute un nouvel enfant au nœud pour une action donnée."""
 
-        child = MCTSNode(env, player, action, self)
-        self.untried_actions.remove(action)
+        action: Tuple[int, int] = self.untried_actions.pop()
+        deepcopy(env)
+        env.step(player, action)
+        child: MCTSNode = MCTSNode(env, player, self.env.get_possible_actions(self.player), action, self)
         self.children.append(child)
 
         return child
@@ -79,28 +68,38 @@ class MCTSNode:
         """Met à jour ce nœud avec le résultat d'une simulation."""
 
         self.visits += 1
-        self.reward += result
+        self.wins += result
 
 
 class MCTS(Agent):
-    def __init__(self, simulation_depth: int = 10, **kwargs) -> None:
+    def __init__(self, simulation_depth: int = 1, **kwargs) -> None:
         super().__init__(**kwargs)
 
         self.is_off_policy: bool = True
         self.simulation_depth: int = simulation_depth
         self.root: MCTSNode = None
 
+    def simulate(self: "MCTS", env: Env, player: Player) -> float:
+        while not env.is_game_over():
+            if (possible_moves := env.get_possible_actions(player)) == []:
+                return 0.0
+
+            env.step(player, choice(possible_moves))
+
+        return 1.0 if env.won_by.id == player.id else 0.0
+
     def select_action(
         self: "MCTS",
         env: Env,
         player: Player,
+        possible_actions: List[Tuple[int, int]],
     ) -> Union[Tuple[int, int], bool]:
-        state: List[int] = env.get_state()
-        self.root: MCTSNode = MCTSNode(env, player)
+        self.root: MCTSNode = MCTSNode(env, player, possible_actions)
+        untried_actions = deepcopy(self.root.untried_actions)
 
         for _ in range(self.simulation_depth):
             node: MCTSNode = self.root
-            state: List[int] = state.copy()
+            env: Env = deepcopy(env)
 
             # Phase de sélection
             # nœud est entièrement développé et non terminal
@@ -109,37 +108,26 @@ class MCTS(Agent):
                 env.step(player, node.action)
 
             # Phase d'expansion
-            if node.untried_actions:  # si on peut ajouter un enfant
-                action: List[int, int] = choice(node.untried_actions)
-                env.step(player, action)
+            if node.untried_actions != []:  # si on peut ajouter un enfant
                 # ajoute un nouveau nœud enfant
-                node: MCTSNode = node.add_child(action, env, player)
+                node: MCTSNode = node.add_child(env, player)
+                env.step(player, node.action)
 
             # Phase de simulation
-            while env.get_possible_actions(player) != []:
-                if (actions := env.get_possible_actions(player)) == []:
-                    break
-
-                env.step(player, choice(actions))
+            result: float = self.simulate(env, player)
 
             # Phase de rétropropagation
             # remonte dans l'arbre en mettant à jour les nœuds
             while node is not None:
-                if node.action is None:
-                    break
-
-                node.update(env.step(node.player, node.action))
+                node.update(result)
                 node = node.parent
 
-        # retourne l'action du meilleur enfant et si on doit continuer à jouer
-        if (chosen_child := self.root.uct_select_child()) is None:
-            while len(self.root.children) == 0:
-                self.root.expand_node()
-
-            chosen_child = self.root.children[0]
-
         return (
-            chosen_child.action,
+            (
+                max(self.root.children, key=lambda child: child.wins / child.visits if child.visits else 0).action
+                if self.root.children
+                else choice(untried_actions)
+            ),
             random() >= self.keep_playing_threshold
         )
 

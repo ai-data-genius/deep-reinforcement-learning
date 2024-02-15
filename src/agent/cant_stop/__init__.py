@@ -17,28 +17,31 @@ class CantStop(Agent):
         decay_rate: Optional[float] = None,
         epsilon: Optional[float] = None,
         gamma: Optional[float] = None,
-        is_policy_gradient: bool = False,
+        is_mc_policy: bool = False,
         is_off_policy: bool = False,
         model: Optional[Network] = None,
         memory: Optional[ReplayBuffer] = None,
         memory_size: int = 20_0000,
         num_columns: Optional[int] = None,
         optimizer: Optional[Optimizer] = None,
+        update_each_episode: bool = False,
     ) -> None:
         self.batch_size: Optional[int] = batch_size
         self.criterion: Optional[Callable] = criterion
+        self.cumulative_losses: list = []
         self.decay_rate: Optional[float] = decay_rate
         self.epsilon: Optional[float] = epsilon
         self.gamma: Optional[float] = gamma
         self.keep_playing_threshold: float = .5
         self.model: Optional[Network] = model
-        self.is_policy_gradient: bool = is_policy_gradient
+        self.is_mc_policy: bool = is_mc_policy
         self.is_off_policy: bool = is_off_policy
         self.memory: Optional[ReplayBuffer] = memory
         self.memory_size: int = memory_size
         self.num_columns: Optional[int] = num_columns
         self.optimizer: Optional[Optimizer] = optimizer
         self.playable_bonzes: Dict[int, List[Bonze]] = {}
+        self.update_each_episode: bool = update_each_episode
 
     def _action_to_index(
         self: "CantStop",

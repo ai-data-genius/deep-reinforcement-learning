@@ -1,5 +1,9 @@
+from datetime import datetime
+from json import dumps
+from os.path import join
 from time import time
-from torch.nn import MSELoss
+
+from torch.nn import SmoothL1Loss  # Huber
 from torch.optim import Adam
 
 from src.agent.cant_stop.double_deep_q_learning_with_experience_replay import DoubleDeepQLearningWithExperienceReplay as DDQLAgent
@@ -9,8 +13,11 @@ from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
+from src.metric import Metric
 from src.network.deep_q import DeepQNet
 
+
+trained_agent: str = "double_deep_q_learning_with_experience_replay"
 
 replay_buffer_size = 10_000
 batch_size = 64
@@ -24,7 +31,7 @@ epsilon_min = 0.01
 # Initialisation de l'agent avec Replay Buffer
 agent = DDQLAgent(
     batch_size=batch_size,
-    criterion=MSELoss(),
+    criterion=SmoothL1Loss(),
     decay_rate=epsilon_decay,
     epsilon=epsilon_start,
     gamma=gamma,
@@ -60,22 +67,25 @@ game = CantStop(
 
 
 def train() -> None:
-    win_stat: dict = {player.id: 0 for player in game.players}
     start_time=time()
 
     for _ in range(nb_episodes):
         game.play()
-        win_stat[game.won_by.id] += 1
         game.reset()
 
     agent.model.save(
-        folder_paths["cant_stop"],
-        "double_deep_q_learning_with_experience_replay.pth",
+        folder_paths["models"]["cant_stop"],
+        f"{trained_agent}.pth",
     )
-    end_time=time()
 
-    print(f"Le temps d'exécution de la boucle est de {end_time - start_time} secondes.")
-    print(f"Stats: {win_stat}")
+    with open(
+        join(
+            folder_paths["metrics"]["cant_stop"],
+            f"{trained_agent}--{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}--ep_{nb_episodes}.json",
+        ),
+        "a",
+    ) as file:
+        file.write(dumps(Metric(start_time, time(), nb_episodes, game.stats).get()))
 
 
 if __name__ == "__main__":

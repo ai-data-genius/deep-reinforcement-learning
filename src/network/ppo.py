@@ -1,6 +1,6 @@
 from typing import Any
 
-from torch import Tensor
+from torch import Tensor, sigmoid
 from torch.nn import Linear
 from torch.nn.functional import relu, softmax
 
@@ -34,5 +34,5 @@ class PPO(Network):
         return (
             softmax(self.policy_head(x), dim=-1),
             self.value_head(x),
-            self.keep_playing_head(x),
+            sigmoid(self.keep_playing_head(x)),
         )

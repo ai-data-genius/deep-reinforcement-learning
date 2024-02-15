@@ -105,6 +105,8 @@ class DoubleDeepQLearningWithPrioritizedReplay(CantStop):
         loss.backward()
         self.optimizer.step()
 
+        self.cumulative_losses.append(loss.detach().numpy().item())
+
         # Mise à jour des priorités dans le buffer
         self.memory.update_priorities(indices, n_max(prios.detach().squeeze().numpy(), axis=1))
 

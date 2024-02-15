@@ -3,34 +3,21 @@ from subprocess import CalledProcessError, PIPE, run
 
 from click import command, group, option
 
+from src.config import agents
+from src.show_metrics import get_plot
 
 @group()
 def cli():
     pass
 
 
-@command()
-@option("--game", default="cant_stop", help="Env name you would like to train.")
-@option("--agent", default="human", help="Agent name you would like to train.")
-def train(game: str, agent: str):
-    agent = {
-        "dql": "deep_q_learning",
-        "ddql": "double_deep_q_learning",
-        "ddql_exp": "double_deep_q_learning_with_experience_replay",
-        "ddql_prio_exp": "double_deep_q_learning_with_prioritized_experience_replay",
-        "reinforce": "reinforce",
-        "reinforce_mb": "reinforce_with_mean_baseline",
-        "reinforce_blc": "reinforce_with_baseline_learned_by_a_critic",
-        "mcts": "monte_carlo_tree_search",
-        "ppo": "ppo",
-    }[agent]
-
+def _train(game: str, agent: str) -> None:
     try:
         print(
             run(
                 [
                     "python",
-                    f"{abspath('.')}/src/train/{game}/{agent}.py",
+                    f"{abspath('.')}/src/train/{game}/{agents[agent]}.py",
                 ],
                 check=True,
                 stdout=PIPE,
@@ -47,7 +34,32 @@ def train(game: str, agent: str):
         print(e.stderr.decode())
 
 
+@command("train")
+@option("--game", default="cant_stop", help="Env name you would like to train.")
+@option("--agent", default="human", help="Agent name you would like to train.")
+def train(game: str, agent: str) -> None:
+    _train(game, agent)
+
+
+@command("train_all")
+@option("--game", default="cant_stop", help="Env name you would like to train.")
+def train_all(game: str) -> None:
+    for agent in agents:
+        _train(game, agent)
+
+
+@command("show_metrics")
+@option("--file_name", default="", help="Nom du fichier avec les métriques.")
+def show_metrics(file_name: str) -> None:
+    if file_name == "":
+        raise ValueError("Il faut renseigner un filename !")
+
+    get_plot(file_name)
+
+
 cli.add_command(train)
+cli.add_command(train_all)
+cli.add_command(show_metrics)
 
 
 if __name__ == '__main__':

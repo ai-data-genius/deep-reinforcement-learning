@@ -1,6 +1,9 @@
+from datetime import datetime
+from json import dumps
+from os.path import join
 from time import time
 
-from torch.nn import MSELoss
+from torch.nn import SmoothL1Loss  # Huber
 from torch.optim import Adam
 
 from src.agent.cant_stop.deep_q_learning import DeepQLearning as DQLAgent
@@ -10,12 +13,15 @@ from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
+from src.metric import Metric
 from src.network.deep_q import DeepQNet
 
 
+trained_agent: str = "deep_q_learning"
+
 agent: DQLAgent = DQLAgent(
     batch_size=10,
-    criterion=MSELoss(),
+    criterion=SmoothL1Loss(),
     decay_rate=.9,
     epsilon=1.0,
     gamma=.99,
@@ -50,22 +56,25 @@ game: CantStop = CantStop(
 
 
 def train() -> None:
-    win_stat: dict = {player.id: 0 for player in game.players}
-    start_time=time()
+    start_time: float = time()
 
     for _ in range(nb_episodes):
         game.play()
-        win_stat[game.won_by.id] += 1
         game.reset()
 
     agent.model.save(
-        folder_paths["cant_stop"],
-        "deep_q_learning.pth",
+        folder_paths["models"]["cant_stop"],
+        f"{trained_agent}.pth",
     )
-    end_time=time()
 
-    print(f"Le temps d'exécution de la boucle est de {end_time - start_time} secondes.")
-    print(f"Stats: {win_stat}")
+    with open(
+        join(
+            folder_paths["metrics"]["cant_stop"],
+            f"{trained_agent}--{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}--ep_{nb_episodes}.json",
+        ),
+        "a",
+    ) as file:
+        file.write(dumps(Metric(start_time, time(), nb_episodes, game.stats).get()))
 
 
 if __name__ == "__main__":

@@ -63,6 +63,7 @@ class Player(BaseModel):
     def reset(self: "Player") -> None:
         self.bonzes: List[Bonze] = [Bonze(id=1), Bonze(id=2), Bonze(id=3)]
         self.playable_bonzes: Dict[int, List[Bonze]] = {}
+        self.reward: float = 0.0
         self.tokens: List[Token] = [Token(id=1), Token(id=2), Token(id=3), Token(id=4), Token(id=5), Token(id=6), Token(id=7), Token(id=8), Token(id=9)]
         self.way_won_count: int = 0
         self.ways_won_id: List[int] = []

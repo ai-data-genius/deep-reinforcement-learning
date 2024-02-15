@@ -31,10 +31,8 @@ class Reinforce(CantStop):
         action_probs, keep_playing_prob = self.model(state_tensor)
         action_probs = action_probs.squeeze()
 
-        keep_playing = keep_playing_prob.item() >= self.keep_playing_threshold
-
         if random() < self.epsilon:
-            return choice(possible_actions), keep_playing
+            return choice(possible_actions), random() >= self.keep_playing_threshold
 
         indices = [self._action_to_index(action, num_columns) for action in possible_actions]
         valid_probs = action_probs[indices]
@@ -45,7 +43,7 @@ class Reinforce(CantStop):
         chosen_action = possible_actions[action_index.item()]
         self.saved_log_probs.append(m.log_prob(action_index))
 
-        return chosen_action, keep_playing
+        return chosen_action, keep_playing_prob.item() >= self.keep_playing_threshold
 
     def update(self: "Reinforce") -> None:
         R: int = 0
@@ -70,6 +68,8 @@ class Reinforce(CantStop):
         policy_loss: Tensor = cat(policy_loss).sum()
         policy_loss.backward()
         self.optimizer.step()
+
+        self.cumulative_losses.append(policy_loss.detach().numpy().item())
 
         self.rewards: list = []
         self.saved_log_probs: list = []
