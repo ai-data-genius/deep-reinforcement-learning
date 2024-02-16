@@ -6,44 +6,45 @@ from time import time
 from torch.nn import SmoothL1Loss  # Huber
 from torch.optim import Adam
 
-from src.agent.cant_stop.deep_q_learning import DeepQLearning as DQLAgent
+from src.agent.cant_stop.ppo import PPO as Agent
 from src.agent.cant_stop.random import Random as RandomAgent
-from src.agent.tool.replay_buffer import ReplayBuffer
+from src.agent.tool.ppo_replay_buffer import PPOReplayBuffer
 from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
 from src.metric import Metric
-from src.network.deep_q import DeepQNet
+from src.network.ppo import PPO as Net
 
 
-trained_agent: str = "deep_q_learning"
-
-agent: DQLAgent = DQLAgent(
-    batch_size=10,
-    criterion=SmoothL1Loss(),
-    decay_rate=.9,
-    epsilon=1.0,
-    gamma=.99,
-    model=(model := DeepQNet(
-        # le nombre de colonne * 7 caractéristiques chacune + 4 dès
-        input_size=(nb_columns * 7) + 4,
-        hidden_size=28,  # à tuner
-        output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
-    )),
-    memory=ReplayBuffer(10_000),
-    num_columns=nb_columns,
-    optimizer=Adam(model.parameters(), lr=.0001),
-)
+trained_agent: str = "ppo"
 
 game: CantStop = CantStop(
     nb_ways=nb_columns,
     players=[
         Player(
-            agent=agent,
+            agent=(
+                agent := Agent(
+                    batch_size=10,
+                    criterion=SmoothL1Loss(),
+                    decay_rate=.9,
+                    eps_clip=.2,
+                    gamma=.99,
+                    K_epochs=10,
+                    memory=PPOReplayBuffer(10_000),
+                    model=(model := Net(
+                        # le nombre de colonne * 7 caractéristiques chacune + 4 dès
+                        input_size=(nb_columns * 7) + 4,
+                        hidden_size=128,
+                        output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
+                    )),
+                    num_columns=nb_columns,
+                    optimizer=Adam(model.parameters(), lr=.001),
+                )
+            ),
             color=Color(name="red"),
             id=1,
-            name="DQLAgent",
+            name="PPO",
         ),
         Player(
             agent=RandomAgent(),
@@ -54,18 +55,19 @@ game: CantStop = CantStop(
     ],
 )
 
+game.players[0].agent.load_model(
+    folder_paths["models"]["cant_stop"]
+    + trained_agent
+    + ".pth"
+)
 
-def train() -> None:
+
+def predict() -> None:
     start_time: float = time()
 
     for _ in range(nb_episodes):
         game.play()
         game.reset()
-
-    agent.model.save(
-        folder_paths["models"]["cant_stop"],
-        f"{trained_agent}.pth",
-    )
 
     with open(
         join(
@@ -78,4 +80,4 @@ def train() -> None:
 
 
 if __name__ == "__main__":
-    train()
+    predict()

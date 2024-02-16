@@ -52,18 +52,19 @@ game = CantStop(
     ],
 )
 
+game.players[0].agent.load_model(
+    folder_paths["models"]["cant_stop"]
+    + trained_agent
+    + ".pth"
+)
 
-def train() -> None:
+
+def predict() -> None:
     start_time=time()
 
     for _ in range(nb_episodes):
         game.play()
         game.reset()
-
-    agent.model.save(
-        folder_paths["models"]["cant_stop"],
-        f"{trained_agent}.pth",
-    )
 
     with open(
         join(
@@ -76,4 +77,4 @@ def train() -> None:
 
 
 if __name__ == "__main__":
-    train()
+    predict()

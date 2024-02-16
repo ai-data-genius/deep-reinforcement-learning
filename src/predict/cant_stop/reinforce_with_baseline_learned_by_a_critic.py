@@ -3,21 +3,19 @@ from json import dumps
 from os.path import join
 from time import time
 
-from torch.nn import SmoothL1Loss  # Huber
 from torch.optim import Adam
 
-from src.agent.cant_stop.ppo import PPO as Agent
+from src.agent.cant_stop.reinforce_with_baseline_learned_by_a_critic import ReinforceWithBaselineLearnedByACritic as Agent
 from src.agent.cant_stop.random import Random as RandomAgent
-from src.agent.tool.ppo_replay_buffer import PPOReplayBuffer
 from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
 from src.env.cant_stop import CantStop
 from src.metric import Metric
-from src.network.ppo import PPO as Net
+from src.network.reinforce_with_baseline_learned_by_a_critic import ActorCritic as Net
 
 
-trained_agent: str = "ppo"
+trained_agent: str = "reinforce_with_baseline_learned_by_a_critic"
 
 game: CantStop = CantStop(
     nb_ways=nb_columns,
@@ -26,12 +24,10 @@ game: CantStop = CantStop(
             agent=(
                 agent := Agent(
                     batch_size=10,
-                    criterion=SmoothL1Loss(),
                     decay_rate=.9,
-                    eps_clip=.2,
+                    epsilon=1.0,
                     gamma=.99,
-                    K_epochs=10,
-                    memory=PPOReplayBuffer(10_000),
+                    is_mc_policy=True,
                     model=(model := Net(
                         # le nombre de colonne * 7 caractéristiques chacune + 4 dès
                         input_size=(nb_columns * 7) + 4,
@@ -39,12 +35,13 @@ game: CantStop = CantStop(
                         output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
                     )),
                     num_columns=nb_columns,
-                    optimizer=Adam(model.parameters(), lr=.001),
+                    optimizer=Adam(model.parameters(), lr=.01),
+                    update_each_episode=True,
                 )
             ),
             color=Color(name="red"),
             id=1,
-            name="PPO",
+            name="Reinforce",
         ),
         Player(
             agent=RandomAgent(),
@@ -55,15 +52,19 @@ game: CantStop = CantStop(
     ],
 )
 
+game.players[0].agent.load_model(
+    folder_paths["models"]["cant_stop"]
+    + trained_agent
+    + ".pth"
+)
 
-def train() -> None:
-    start_time: float = time()
+
+def predict() -> None:
+    start_time=time()
 
     for _ in range(nb_episodes):
         game.play()
         game.reset()
-
-    agent.model.save(folder_paths["models"]["cant_stop"], f"{trained_agent}.pth")
 
     with open(
         join(
@@ -76,4 +77,4 @@ def train() -> None:
 
 
 if __name__ == "__main__":
-    train()
+    predict()

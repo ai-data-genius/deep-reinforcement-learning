@@ -1,3 +1,4 @@
+from random import random
 from time import time
 
 from typing import Dict, List, Optional, Tuple, Union
@@ -419,12 +420,25 @@ class CantStop(Env):
 
                     start_time: float = time()
 
-                    if not player.agent.is_off_policy:
+                    if not player.agent.is_off_policy and not player.agent.is_rollout:
                         action, keep_playing = player.agent.select_action(
                             current_state,
                             possible_actions,
                             self.nb_ways,
                         )
+                    elif player.agent.is_rollout:
+                        best_action = None
+                        best_reward = float('-inf')
+
+                        for _action in possible_actions:
+                            action_reward = player.agent.rollout(self, player, _action)
+
+                            if action_reward > best_reward:
+                                best_reward = action_reward
+                                best_action = _action
+
+                        action = best_action
+                        keep_playing = random() >= player.agent.keep_playing_threshold
                     else:
                         action, keep_playing = player.agent.select_action(self, player, possible_actions)
 

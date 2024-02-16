@@ -26,4 +26,4 @@ folder_paths: Dict[str, str] = {
 }
 
 nb_columns: int = 11
-nb_episodes: int = 10_000
+nb_episodes: int = 100

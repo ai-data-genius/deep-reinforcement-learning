@@ -6,8 +6,9 @@ from time import time
 from torch.nn import SmoothL1Loss  # Huber
 from torch.optim import Adam
 
-from src.agent.cant_stop.double_deep_q_learning import DoubleDeepQLearning as DDQLAgent
+from src.agent.cant_stop.double_deep_q_learning_with_experience_replay import DoubleDeepQLearningWithExperienceReplay as DDQLAgent
 from src.agent.cant_stop.random import Random as RandomAgent
+from src.agent.tool.replay_buffer import ReplayBuffer
 from src.config import folder_paths, nb_columns, nb_episodes
 from src.entity.cant_stop.color import Color
 from src.entity.cant_stop.player import Player
@@ -16,22 +17,34 @@ from src.metric import Metric
 from src.network.deep_q import DeepQNet
 
 
-trained_agent: str = "double_deep_q_learning"
+trained_agent: str = "double_deep_q_learning_with_experience_replay"
 
+replay_buffer_size = 10_000
+batch_size = 64
+target_update_frequency = 100
+learning_rate = .0001
+gamma = 0.99
+epsilon_start = 1.0
+epsilon_decay = 0.995
+epsilon_min = 0.01
+
+# Initialisation de l'agent avec Replay Buffer
 agent = DDQLAgent(
-    batch_size=10,
+    batch_size=batch_size,
     criterion=SmoothL1Loss(),
-    decay_rate=.9,
-    epsilon=1.0,
-    gamma=.99,
+    decay_rate=epsilon_decay,
+    epsilon=epsilon_start,
+    gamma=gamma,
     model=(model := DeepQNet(
-        input_size=(nb_columns * 7) + 4,  # le nombre de colonne * 7 caractéristiques chacune + 4 dès
-        hidden_size=28,  # à tuner
-        output_size=pow(nb_columns, 2) + 1,  # + 1 pour keep_playing action
+        input_size=(nb_columns * 7) + 4,  # Nombre de colonnes * 7 caractéristiques chacune + 4 dés
+        hidden_size=28,
+        output_size=pow(nb_columns, 2) + 1,  # +1 pour l'action de continuer à jouer
     )),
+    memory=ReplayBuffer(replay_buffer_size),
     num_columns=nb_columns,
-    optimizer=Adam(model.parameters(), lr=.0001),
-    target_update_frequency=100  # À quel point fréquemment mettre à jour le réseau cible
+    optimizer=Adam(model.parameters(), lr=learning_rate),
+    replay_buffer_size=replay_buffer_size,
+    target_update_frequency=target_update_frequency,
 )
 
 game = CantStop(
@@ -52,18 +65,19 @@ game = CantStop(
     ],
 )
 
+game.players[0].agent.load_model(
+    folder_paths["models"]["cant_stop"]
+    + trained_agent
+    + ".pth"
+)
 
-def train() -> None:
+
+def predict() -> None:
     start_time=time()
 
     for _ in range(nb_episodes):
         game.play()
         game.reset()
-
-    agent.model.save(
-        folder_paths["models"]["cant_stop"],
-        f"{trained_agent}.pth",
-    )
 
     with open(
         join(
@@ -76,4 +90,4 @@ def train() -> None:
 
 
 if __name__ == "__main__":
-    train()
+    predict()

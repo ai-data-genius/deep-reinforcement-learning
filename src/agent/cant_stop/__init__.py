@@ -36,6 +36,7 @@ class CantStop(Agent):
         self.model: Optional[Network] = model
         self.is_mc_policy: bool = is_mc_policy
         self.is_off_policy: bool = is_off_policy
+        self.is_rollout: bool = False
         self.memory: Optional[ReplayBuffer] = memory
         self.memory_size: int = memory_size
         self.num_columns: Optional[int] = num_columns
